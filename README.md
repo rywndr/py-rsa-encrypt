@@ -216,3 +216,39 @@ python main.py
 2. Pengamanan File Sensitif
 
    - File penting dapat dienkripsi sebelum disimpan atau dikirim. Hanya penerima dengan private key yang dapat membukanya.
+
+## **📚 References**
+
+1. [PyCryptodome Documentation](https://www.pycryptodome.org)
+2. [PKCS#1 OAEP - PyCryptodome](https://pycryptodome.readthedocs.io/en/latest/src/cipher/oaep.html)
+3. [RSA Cryptography - Wikipedia](<(https://id.wikipedia.org/wiki/RSA)>)
+4. [PKCS#1 - Wikipedia](https://en.wikipedia.org/wiki/PKCS_1)
+5. [Asymmetric Encryption - Wikipedia](https://en.wikipedia.org/wiki/Public-key_cryptography)
+6. [Pycryptodome - RSA Source Code](https://github.com/Legrandin/pycryptodome/blob/master/lib/Crypto/PublicKey/RSA.py#L457-L536)
+7. [PyCryptodome - PKCS_OAEP Source Code](https://github.com/Legrandin/pycryptodome/blob/master/lib/Crypto/Cipher/PKCS1_OAEP.py#L196-L231)
+
+---
+
+## 🧑‍💻 About the Authors
+
+---
+
+🎓 **Author 1:**
+
+    ⢀⣤⣤⣤⣀⣀⠀⠀⠀⠀⠀⠀⠀
+
+⠀⠀⠰⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀⠀⠀⠀⠀ ⠀⠀⢀⠇⠸⠟⠻⣿⣿⣿⣿⣿⣧⣀⠀⠀⠀ ⠀⠀⢸⠀⡎⠀⠤⢛⣿⣿⣿⣿⣿⣿⣿⣦⡀ ⠀⢀⣿⠀⠠⢴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿ ⠀⣿⣿⣄⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿ ⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+
+- **Nama**: _Haikhal Roywendra_
+- **NIM**: _3222002_
+
+---
+
+🎓 **Author 2:**
+
+⠀⠀⢀⡠⢔⡢⢄⡀⣀⡀⢀⠔⢒⢤⡀⠀ ⠀⠀⢀⠔⠑⠀⠂⠂⠠⢂⢀⡂⠈⠈⠉⠐⠒⡆ ⠀⢀⡄⠀⢌⣀⠔⡠⡑⢍⢈⠆⣀⣤⣤⣀⠂⠣ ⠀⡇⠐⠈⡄⣀⣀⠒⠚⠛⠛⠉⠉⠉⠙⠒⡀⡀ ⠀⡇⡄⡜⠊⠁⢸⠂⠤⠔⢠⣤⡀⡀⣀⠐⠛⠁ ⠀⢧⠇⠇⠀⠤⢸⠀⠀⠈⠆⠉⡇⢨⠇⣴⣄⡀
+
+- **Nama**: _Maria Febrianti_
+- **NIM**: _3222005_
+
+🎉 Semoga Bermanfaat
