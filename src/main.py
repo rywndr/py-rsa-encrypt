@@ -1,6 +1,6 @@
 import os
 
-from rsa_crypto.rsa import RSAHandler
+from lib.rsa import RSAHandler
 
 
 def display_ascii_art():

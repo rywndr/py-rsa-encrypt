@@ -1,4 +1,4 @@
-from rsa import RSAHandler
+from lib.rsa import RSAHandler
 
 
 def main():
