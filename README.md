@@ -1,6 +1,6 @@
 # 🎓 Panduan Penggunaan RSA Cryptography Program dengan Python 🛡️
 
-## 🛠️ Asymmetric Encryption: Apa Itu dan Mengapa Penting?
+## 🛠️ [Asymmetric Encryption](https://id.wikipedia.org/wiki/Kriptografi_kunci_publik): Apa Itu dan Mengapa Penting?
 
 Asymmetric encryption adalah metode enkripsi yang menggunakan dua kunci berbeda:
 
@@ -16,7 +16,7 @@ Berbeda dengan enkripsi simetris, di mana satu kunci yang sama digunakan untuk e
 
 ---
 
-## 🔐 Apa Itu RSA?
+## 🔐 Apa Itu [RSA](https://id.wikipedia.org/wiki/RSA)?
 
 RSA (Rivest–Shamir–Adleman) adalah salah satu algoritma enkripsi asimetris paling populer. RSA digunakan karena:
 
@@ -25,7 +25,7 @@ RSA (Rivest–Shamir–Adleman) adalah salah satu algoritma enkripsi asimetris p
 
 ---
 
-## 🛠️ PyCryptodome: Library Python untuk Kriptografi
+## 🛠️ [PyCryptodome](https://www.pycryptodome.org): Library Python untuk Kriptografi
 
 PyCryptodome adalah pustaka Python yang mendukung operasi kriptografi modern, termasuk RSA. Pustaka ini menyediakan:
 
@@ -42,18 +42,63 @@ pip install pycryptodome
 
 ---
 
-## ✍️ Apa itu PKCS1_OAEP
+## PKCS#1 OAEP
 
-PKCS1_OAEP (Optimal Asymmetric Encryption Padding) adalah metode padding untuk RSA yang meningkatkan keamanan enkripsi. Padding ini mencegah serangan berbasis struktur pesan dengan:
+### 🔑 **Apa itu [PKCS#1](https://en.wikipedia.org/wiki/PKCS_1)?**
 
-    - Menambahkan pengacak (randomizer).
-    - Memastikan pesan yang sama akan menghasilkan enkripsi berbeda setiap kali.
+PKCS#1 (Public Key Cryptography Standards #1) adalah standar yang mendefinisikan bagaimana menggunakan **RSA untuk enkripsi dan tanda tangan digital**. Standar ini mencakup:
+
+- **Kompatibilitas** antar implementasi RSA yang berbeda.
+- Cara melakukan padding (penambahan data acak) sebelum operasi kriptografi.
+- Perlindungan terhadap **serangan keamanan**, seperti serangan ciphertext yang dipilih.
+
+---
+
+### 💡 **Mengapa RSA Membutuhkan Padding?**
+
+RSA bekerja dengan memproses data dalam bentuk blok matematis. Namun, jika **RSA digunakan tanpa padding**, ada banyak risiko:
+
+1. **Hasil yang Dapat Diprediksi:** Enkripsi pesan kecil seperti "123" atau "Hi" menghasilkan ciphertext yang mudah ditebak.
+2. **Serangan Struktural:** Penyerang dapat mengeksploitasi pola ciphertext yang dapat diprediksi untuk menebak plaintext.
+
+Padding menambahkan **randomness** dan struktur pada data, sehingga ciphertext menjadi tidak mudah ditebak dan lebih aman.
+
+---
+
+### 🔒 **Apa itu [PKCS#1 OAEP](https://pycryptodome.readthedocs.io/en/latest/src/cipher/oaep.html)?**
+
+OAEP (Optimal Asymmetric Encryption Padding) adalah skema padding yang dirancang khusus untuk **RSA encryption** dalam standar PKCS#1. Tujuannya:
+
+1. Menambahkan **randomness** pada plaintext agar setiap enkripsi menghasilkan ciphertext yang berbeda, meskipun plaintext-nya sama.
+2. Melindungi RSA dari serangan canggih, seperti **chosen ciphertext attacks**.
+
+#### **Bagaimana Cara Kerja OAEP?**
+
+1. **Randomisasi Pesan:** Pesan dikombinasikan dengan nilai acak (seed) menggunakan fungsi hash untuk menghasilkan pesan yang teracak.
+2. **Penambahan Struktur:** Pesan yang teracak diubah menjadi format yang terstruktur sebelum dienkripsi.
+3. **Enkripsi RSA:** Algoritma RSA digunakan untuk mengenkripsi data yang sudah dipadding.
+
+### 🧑‍🏫 **Perbandingan: Dengan dan Tanpa PKCS#1 OAEP**
+
+#### **1. Tanpa Padding (RSA Tidak Aman):**
+
+Jika menggunakan RSA tanpa padding:
+
+- Pesan yang kecil atau mudah ditebak menghasilkan ciphertext yang dapat ditebak.
+- Contoh:
+  - Mengenkripsi `123` tanpa padding mungkin selalu menghasilkan ciphertext `C1`.
+  - Jika seseorang melihat `C1` beberapa kali, mereka tahu bahwa itu adalah hasil enkripsi `123`.
+
+#### **2. Dengan PKCS#1 OAEP (RSA Aman):**
+
+- Setiap proses enkripsi melibatkan seed acak yang baru.
+- Meskipun plaintext yang sama dienkripsi berkali-kali, ciphertext-nya akan selalu berbeda.
 
 ---
 
 ## 🧑‍💻 Membuat Program RSA Cryptography
 
-### 1️⃣ Modul rsa.py: Mengelola Kunci dan Enkripsi
+### 1️⃣ Modul rsa.py: Modul utama untuk menangani operasi RSA
 
 Modul ini menangani semua operasi dasar RSA:
 
@@ -80,7 +125,7 @@ def generate_keypair(self):
 
 ---
 
-### 2️⃣ Modul main.py: Penggunaanaan Dasar
+### 2️⃣ Modul example.py: Program ringkas singkat Dedonstrasi
 
 Ini adalah implementasi sederhana dari operasi RSA:
 
@@ -99,7 +144,7 @@ print("Encrypted Message:", encrypted_message.hex())
 
 ---
 
-### 3️⃣ Modul interactive.py: Menu Interaktif
+### 3️⃣ Modul main.py: Program Utama Interaktif
 
 Modul ini menambahkan antarmuka interaktif untuk pengguna. Anda dapat:
 
@@ -124,13 +169,49 @@ def main():
 
 ---
 
+### 🛠️ Cara Menggunakan Program Ini (How To)
+
+1. Clone repository ini menggunakan git:
+
+```bash
+git clone https://github.com/rywndr/rsa.git
+```
+
+2. Buka terminal dan pindah ke direktori program:
+
+```bash
+cd rsa
+```
+
+3. Install dependencies di requirements.txt menggunakan pip:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 🚀 Menjalankan Program
+
+1. Jalankan program example.py untuk melihat contoh penggunaan:
+
+```bash
+python example.py
+```
+
+2. Jalankan program main.py untuk menggunakan program interaktif:
+
+```bash
+python main.py
+```
+
+---
+
 ## 🧪 Real World Applications
 
 1. Chat Aman Antara Dua Orang
 
-   - Pengguna A: Membuat pasangan kunci RSA dan membagikan public key kepada Pengguna B.
-   - Pengguna B: Mengenkripsi pesan menggunakan public key A dan mengirim pesan terenkripsi.
-   - Pengguna A: Mendekripsi pesan menggunakan private key mereka.
+   - User A: Membuat pasangan kunci RSA dan membagikan public key kepada User B.
+   - User B: Mengenkripsi pesan menggunakan public key A dan mengirim pesan terenkripsi.
+   - User A: Mendekripsi pesan menggunakan private key mereka.
 
 2. Pengamanan File Sensitif
 
