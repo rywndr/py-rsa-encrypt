@@ -1,4 +1,4 @@
-# 🎓 Panduan Penggunaan RSA Cryptography Program dengan Python 🛡️
+# 🎓 Program RSA Cryptography menggunakan standar PKCS1_OAEP dengan Python🛡️
 
 ## 🛠️ [Asymmetric Encryption](https://id.wikipedia.org/wiki/Kriptografi_kunci_publik): Apa Itu dan Mengapa Penting?
 
@@ -96,7 +96,7 @@ Jika menggunakan RSA tanpa padding:
 
 ---
 
-## 🧑‍💻 Membuat Program RSA Cryptography
+## 🧑‍💻 Panduan singkat Modul Program
 
 ### 1️⃣ Modul rsa.py: Modul utama untuk menangani operasi RSA
 
@@ -226,6 +226,24 @@ python main.py
 5. [PyCryptodome Documentation](https://www.pycryptodome.org)
 6. [Pycryptodome - RSA Source Code](https://github.com/Legrandin/pycryptodome/blob/master/lib/Crypto/PublicKey/RSA.py#L457-L536)
 7. [PyCryptodome - PKCS_OAEP Source Code](https://github.com/Legrandin/pycryptodome/blob/master/lib/Crypto/Cipher/PKCS1_OAEP.py#L196-L231)
+
+---
+
+## Repo structure
+
+```bash
+rsa/
+├── src/
+│   ├── lib/
+│   │   ├── __init.py__
+│   │   └── rsa.py
+│   ├── example.py
+│   └── main.py
+├── .gitignore
+├── README.md
+├── requirements.txt
+└── welcome.py
+```
 
 ---
 
