@@ -11,68 +11,118 @@ def act_as_server(stdscr, rsa_handler, keys_folder, history):
     port = 5000
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
     server_socket.listen(1)
-    server_socket.setblocking(False)  # Set to non-blocking mode
+    server_socket.setblocking(False)
+
+    # Load server's public key to send to client
+    public_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep.pub"))
+    private_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep"))
 
     history.append(f"Server listening on {host}:{port}")
+
     stdscr.refresh()
 
     inputs = [server_socket]
-    while True:
-        readable, writable, exceptional = select.select(inputs, [], [], 1)
-        if readable:
+    try:
+        while True:
+            readable, _, _ = select.select(inputs, [], [], 1)
+
+            if server_socket in readable:
+                conn, address = server_socket.accept()
+                conn.setblocking(False)
+                inputs.append(conn)
+                history.append(f"Connection from: {address}")
+
+                # Send public key to client
+                conn.send(public_key.encode())
+                stdscr.refresh()
+
             for s in readable:
-                if s is server_socket:
-                    conn, address = server_socket.accept()
-                    conn.setblocking(False)  # Set client socket to non-blocking mode
-                    inputs.append(conn)
-                    history.append(f"Connection from: {address}")
-                    stdscr.refresh()
-                else:
-                    data = s.recv(1024).decode()
-                    if not data:
-                        inputs.remove(s)
-                        s.close()
-                    else:
-                        history.append(f"Received encrypted message: {data}")
+                if s is not server_socket:
+                    try:
+                        data = s.recv(4096)
+                        if not data:
+                            inputs.remove(s)
+                            s.close()
+                            continue
+
+                        # Decrypt the received message
+                        decrypted_message = rsa_handler.decrypt(private_key, data)
+                        history.append(f"Received and decrypted: {decrypted_message}")
                         stdscr.refresh()
 
-    server_socket.close()
+                        # Optional: send back an acknowledgment
+                        response = f"Server received: {decrypted_message}"
+                        encrypted_response = rsa_handler.encrypt(public_key, response)
+                        s.send(encrypted_response)
+
+                    except Exception as e:
+                        history.append(f"Error processing client message: {str(e)}")
+                        inputs.remove(s)
+                        s.close()
+
+    except KeyboardInterrupt:
+        history.append("Server shutting down")
+    finally:
+        server_socket.close()
 
 
 def act_as_client(stdscr, rsa_handler, keys_folder, history):
-    host = "server_ip_address"  # Replace with the actual IP address of the server
+    host = get_user_input(stdscr, "Enter server IP address: ", history)
     port = 5000
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.setblocking(False)  # Set to non-blocking mode
+    client_socket.setblocking(False)
+
+    # Load client's keys
+    public_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep.pub"))
+    private_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep"))
+
     try:
         client_socket.connect((host, port))
     except socket.error as e:
-        if e.errno == 115:  # EINPROGRESS - Connection in progress
-            pass
-        else:
-            raise
+        if e.errno != 115:  # Not in progress
+            history.append(f"Connection error: {str(e)}")
+            return
 
-    history.append(f"Connected to {host}:{port}")
+    history.append(f"Connecting to {host}:{port}")
     stdscr.refresh()
 
-    while True:
-        readable, writable, exceptional = select.select([client_socket], [], [], 1)
+    # Wait for server's public key
+    server_public_key = None
+    while not server_public_key:
+        readable, _, _ = select.select([client_socket], [], [], 5)
         if readable:
-            public_key = client_socket.recv(1024).decode()
-            if public_key:
-                history.append("Received public key from server")
-                stdscr.refresh()
-                break
+            server_public_key = client_socket.recv(4096).decode()
+            history.append("Received server's public key")
+            break
 
+    if not server_public_key:
+        history.append("Failed to receive server's public key")
+        client_socket.close()
+        return
+
+    # Get message to send
     message = get_user_input(stdscr, "Enter message to encrypt: ", history)
-    encrypted_message = rsa_handler.encrypt(public_key, message)
+
+    # Encrypt and send message
+    encrypted_message = rsa_handler.encrypt(server_public_key, message)
     client_socket.send(encrypted_message)
 
     history.append(f"Sent encrypted message: {truncate_ciphertext(encrypted_message)}")
     stdscr.refresh()
+
+    # Wait for server response
+    try:
+        readable, _, _ = select.select([client_socket], [], [], 5)
+        if readable:
+            response = client_socket.recv(4096)
+            decrypted_response = rsa_handler.decrypt(private_key, response)
+            history.append(f"Server response: {decrypted_response}")
+    except Exception as e:
+        history.append(f"Error receiving server response: {str(e)}")
 
     client_socket.close()
 
@@ -126,16 +176,22 @@ def menu_navigation(stdscr, menu, history):
 
         # Display menu below ASCII art
         menu_start_y = ascii_art_height + 1
+        menu_border = " ╔═════Menu═════════════════════╗"
+        stdscr.addstr(menu_start_y, 0, menu_border)
+
         for idx, row in enumerate(menu):
             if idx == current_row:
                 stdscr.attron(curses.color_pair(1))
-                stdscr.addstr(menu_start_y + idx, 1, f"> {row}")
+                stdscr.addstr(menu_start_y + idx + 1, 1, f"║ {row}")
                 stdscr.attroff(curses.color_pair(1))
             else:
-                stdscr.addstr(menu_start_y + idx, 1, f"  {row}")
+                stdscr.addstr(menu_start_y + idx + 1, 1, f"║ {row}")
+
+        menu_border = " ╚══════════════════════════════╝"
+        stdscr.addstr(menu_start_y + len(menu) + 1, 0, menu_border)
 
         # Display history below menu
-        history_start_y = menu_start_y + len(menu) + 1
+        history_start_y = menu_start_y + len(menu) + 2
 
         # Limit history to available space
         display_history = history[1 : max_history_lines + 1] if len(history) > 1 else []
@@ -156,6 +212,8 @@ def menu_navigation(stdscr, menu, history):
         elif key in [curses.KEY_DOWN, ord("j")]:
             current_row = (current_row + 1) % len(menu)
         elif key in [10, ord("\n")]:  # Enter key
+            if current_row == len(menu) - 1:
+                return None
             return current_row
 
 
@@ -297,10 +355,22 @@ def main(stdscr):
 
         elif selected in range(1, 7):  # Encryption/Decryption options
             if keys_folder is None:
-                history.append("Keys folder not set. Generate keypair first.")
-                continue
+                message = get_user_input(
+                    stdscr,
+                    "Input path folder .keys atau ketik (R)etry jika Anda belum men-generate keypair: ",
+                    history,
+                )
+                if message.lower() == "r" or message.lower() == "retry":
+                    continue
 
-            if selected == 1:  # Encrypt message
+                if not os.path.exists(message):
+                    history.append("Error: Folder does not exist.")
+                    continue
+
+                keys_folder = message
+                selected = selected
+
+            elif selected == 1:  # Encrypt message
                 message = get_user_input(stdscr, "Enter message to encrypt: ", history)
                 public_key = rsa_handler.load_key(
                     os.path.join(keys_folder, "rsa_pkcs1_oaep.pub")
@@ -310,6 +380,25 @@ def main(stdscr):
                 result = f"Encrypted Message: {truncate_ciphertext(encrypted_message)}"
                 history.append(result)
 
+                # Ask if user wants to save the encrypted message
+                save_option = get_user_input(
+                    stdscr,
+                    "Do you want to save the encrypted message? (y/n): ",
+                    history,
+                )
+
+                if save_option.lower() == "y":
+                    # Create a directory for encrypted messages if it doesn't exist
+                    encrypted_dir = os.path.join(os.getcwd(), "encrypted_messages")
+                    os.makedirs(encrypted_dir, exist_ok=True)
+
+                    # Save the encrypted message to a file
+                    encrypted_file_path = os.path.join(encrypted_dir, "encrypted.txt")
+                    with open(encrypted_file_path, "wb") as f:
+                        f.write(encrypted_message)
+
+                    # Add to history
+                    history.append(f"Encrypted message saved to {encrypted_file_path}")
             elif selected == 2:  # Decrypt message
                 if last_encrypted_message is None:
                     history.append(
@@ -358,20 +447,13 @@ def main(stdscr):
                 history.append(result)
 
             elif selected == 5:  # Acts as a server
-                if keys_folder is None:
-                    history.append("Keys folder not set. Generate keypair first.")
-                    continue
                 act_as_server(stdscr, rsa_handler, keys_folder, history)
 
             elif selected == 6:  # Acts as a client
-                if keys_folder is None:
-                    history.append("Keys folder not set. Generate keypair first.")
-                    continue
                 act_as_client(stdscr, rsa_handler, keys_folder, history)
 
-            elif selected == 7:  # Quit
-                history.append("Goodbye!")
-                break
+        if selected is None:  # Quit condition
+            break
 
 
 if __name__ == "__main__":
