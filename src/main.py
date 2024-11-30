@@ -1,6 +1,21 @@
 import os
+import platform
 
 from lib.rsa import RSAHandler
+
+
+def clear_screen():
+    """
+    Fungsi untuk membersihkan terminal sesuai os.
+    """
+    # get curr os
+    system = platform.system().lower()
+
+    # clear terminal sesuai os
+    if system == "windows":
+        os.system("cls")
+    else:
+        os.system("clear")
 
 
 def display_ascii_art():
@@ -32,6 +47,7 @@ def main():
     - Mengenkripsi dan mendekripsi pesan.
     - Mengenkripsi dan mendekripsi file.
     """
+    clear_screen()
     rsa_handler = RSAHandler()
     display_ascii_art()
     print("Selamat datang di program RSA Cryptography!")
