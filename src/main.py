@@ -1,29 +1,87 @@
+import curses
 import os
-import platform
+import select
+import socket
 
 from lib.rsa import RSAHandler
 
 
-def clear_screen():
-    """
-    Fungsi untuk membersihkan terminal sesuai os.
-    """
-    # get curr os
-    system = platform.system().lower()
+def act_as_server(stdscr, rsa_handler, keys_folder, history):
+    host = "0.0.0.0"
+    port = 5000
 
-    # clear terminal sesuai os
-    if system == "windows":
-        os.system("cls")
-    else:
-        os.system("clear")
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(1)
+    server_socket.setblocking(False)  # Set to non-blocking mode
+
+    history.append(f"Server listening on {host}:{port}")
+    stdscr.refresh()
+
+    inputs = [server_socket]
+    while True:
+        readable, writable, exceptional = select.select(inputs, [], [], 1)
+        if readable:
+            for s in readable:
+                if s is server_socket:
+                    conn, address = server_socket.accept()
+                    conn.setblocking(False)  # Set client socket to non-blocking mode
+                    inputs.append(conn)
+                    history.append(f"Connection from: {address}")
+                    stdscr.refresh()
+                else:
+                    data = s.recv(1024).decode()
+                    if not data:
+                        inputs.remove(s)
+                        s.close()
+                    else:
+                        history.append(f"Received encrypted message: {data}")
+                        stdscr.refresh()
+
+    server_socket.close()
 
 
-def display_ascii_art():
+def act_as_client(stdscr, rsa_handler, keys_folder, history):
+    host = "server_ip_address"  # Replace with the actual IP address of the server
+    port = 5000
+
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.setblocking(False)  # Set to non-blocking mode
+    try:
+        client_socket.connect((host, port))
+    except socket.error as e:
+        if e.errno == 115:  # EINPROGRESS - Connection in progress
+            pass
+        else:
+            raise
+
+    history.append(f"Connected to {host}:{port}")
+    stdscr.refresh()
+
+    while True:
+        readable, writable, exceptional = select.select([client_socket], [], [], 1)
+        if readable:
+            public_key = client_socket.recv(1024).decode()
+            if public_key:
+                history.append("Received public key from server")
+                stdscr.refresh()
+                break
+
+    message = get_user_input(stdscr, "Enter message to encrypt: ", history)
+    encrypted_message = rsa_handler.encrypt(public_key, message)
+    client_socket.send(encrypted_message)
+
+    history.append(f"Sent encrypted message: {truncate_ciphertext(encrypted_message)}")
+    stdscr.refresh()
+
+    client_socket.close()
+
+
+def display_ascii_art(stdscr):
     """
-    Fungsi untuk menampilkan ASCII Art pada awal program.
-    Hanya untuk estetika.
+    Display ASCII art at the start of the program.
     """
-    print(r"""
+    art = r"""
   ___ ___   ____     _____                                                                              
  /   |   \ /  _ \   /     \                                                                             
 /    ~    \>  _ </\/  \ /  \                                                                            
@@ -36,123 +94,243 @@ __________  _________   _____    ___________ _______  ________________________._
  |    |   \/        \/    |    \  |        \/    |    \     \___|    |   \\____   | |    |     |    |   
  |____|_  /_______  /\____|__  / /_______  /\____|__  /\______  /____|_  // ______| |____|     |____|   
         \/        \/         \/          \/         \/        \/       \/ \/                            
-""")
+"""
+    return art
 
 
-def main():
+def menu_navigation(stdscr, menu, history):
     """
-    Fungsi utama untuk menjalankan program interaktif RSA Cryptography.
-    Program ini memberikan opsi seperti:
-    - Membuat kunci RSA.
-    - Mengenkripsi dan mendekripsi pesan.
-    - Mengenkripsi dan mendekripsi file.
+    Display menu and allow navigation using arrow keys or vim keys.
     """
-    clear_screen()
-    rsa_handler = RSAHandler()
-    display_ascii_art()
-    print("Selamat datang di program RSA Cryptography!")
-    print("===========================================")
+    current_row = 0
+    max_y, max_x = stdscr.getmaxyx()
 
-    keys_folder = None  # Variabel untuk menyimpan lokasi folder kunci.
+    # Split the screen into sections
+    ascii_art_lines = history[0].split("\n")
+    ascii_art_height = len(ascii_art_lines)
+
+    # Calculate available space for history
+    max_history_lines = (
+        max_y - ascii_art_height - len(menu) - 4
+    )  # Reserve space for menu and input
 
     while True:
-        """
-        Menampilkan menu interaktif dengan opsi untuk pengguna.
-        Pengguna dapat memilih tindakan yang ingin dilakukan.
-        """
-        print(r"""
-╔══════════════════════════════╗
-║ Option                       ║
-║ 1. Generate RSA keypairs     ║
-║ 2. Encrypt message           ║
-║ 3. Decrypt message           ║
-║ 4. Encrypt file              ║
-║ 5. Decrypt file              ║
-║ 6. (Q)uit                    ║
-╚══════════════════════════════╝
-        """)
+        stdscr.clear()
 
-        choice = input(
-            "Input pilihan Anda: "
-        ).strip()  # Meminta input pilihan dari pengguna.
+        # Display ASCII art at the top
+        for i, line in enumerate(ascii_art_lines):
+            try:
+                stdscr.addstr(i, 0, line)
+            except curses.error:
+                pass  # Ignore potential screen boundary errors
 
-        if choice == "1":
-            """
-            Opsi untuk membuat kunci RSA.
-            Pengguna akan diminta untuk menentukan lokasi folder tempat menyimpan kunci.
-            """
-            save_path = input(
-                "Input path dimana Anda ingin menyimpan folder .keys (default: direktori saat ini): "
-            )
-            if save_path == "":
-                save_path = (
-                    os.getcwd()
-                )  # Gunakan direktori yang kini jika user tidak menyediakan input
+        # Display menu below ASCII art
+        menu_start_y = ascii_art_height + 1
+        for idx, row in enumerate(menu):
+            if idx == current_row:
+                stdscr.attron(curses.color_pair(1))
+                stdscr.addstr(menu_start_y + idx, 1, f"> {row}")
+                stdscr.attroff(curses.color_pair(1))
             else:
-                if not os.path.exists(save_path):
-                    os.makedirs(save_path)  # Buat direktori jika belum ada.
+                stdscr.addstr(menu_start_y + idx, 1, f"  {row}")
 
-            # Membuat folder .keys untuk menyimpan kunci.
+        # Display history below menu
+        history_start_y = menu_start_y + len(menu) + 1
+
+        # Limit history to available space
+        display_history = history[1 : max_history_lines + 1] if len(history) > 1 else []
+
+        for i, hist_entry in enumerate(display_history):
+            try:
+                # Truncate long lines to prevent wrapping
+                truncated_entry = hist_entry[: max_x - 1]
+                stdscr.addstr(history_start_y + i, 0, truncated_entry)
+            except curses.error:
+                break  # Stop if we run out of screen space
+
+        stdscr.refresh()
+
+        key = stdscr.getch()
+        if key in [curses.KEY_UP, ord("k")]:
+            current_row = (current_row - 1) % len(menu)
+        elif key in [curses.KEY_DOWN, ord("j")]:
+            current_row = (current_row + 1) % len(menu)
+        elif key in [10, ord("\n")]:  # Enter key
+            return current_row
+
+
+def get_user_input(stdscr, prompt, history):
+    """
+    Display a prompt and get user input with proper spacing and no overlapping.
+    """
+    # Calculate screen dimensions
+    max_y, max_x = stdscr.getmaxyx()
+
+    # Calculate ASCII art height
+    ascii_art_lines = history[0].split("\n")
+    ascii_art_height = len(ascii_art_lines)
+
+    stdscr.clear()
+
+    # Display ASCII art at the top
+    for i, line in enumerate(ascii_art_lines):
+        try:
+            stdscr.addstr(i, 0, line)
+        except curses.error:
+            pass  # Ignore potential screen boundary errors
+
+    # Calculate available space for history
+    menu = [
+        "Generate RSA keypairs",
+        "Encrypt message",
+        "Decrypt message",
+        "Encrypt file",
+        "Decrypt file",
+        "Acts as a server",
+        "Acts as a client",
+        "Quit",
+    ]
+    max_history_lines = (
+        max_y - ascii_art_height - len(menu) - 4
+    )  # Reserve space for menu and input
+
+    # Display history
+    history_start_y = ascii_art_height + 1
+
+    # Limit history to available space
+    display_history = history[1 : max_history_lines + 1] if len(history) > 1 else []
+
+    for i, hist_entry in enumerate(display_history):
+        try:
+            # Truncate long lines to prevent wrapping
+            truncated_entry = hist_entry[: max_x - 1]
+            stdscr.addstr(history_start_y + i, 0, truncated_entry)
+        except curses.error:
+            break  # Stop if we run out of screen space
+
+    # Calculate input start position
+    input_prompt_y = max_y - 3
+    input_y = max_y - 2
+
+    # Clear the lines we'll use for input
+    stdscr.addstr(input_prompt_y, 0, " " * max_x)
+    stdscr.addstr(input_y, 0, " " * max_x)
+
+    # Display prompt for input at the bottom of the screen
+    stdscr.addstr(input_prompt_y, 0, prompt)
+    stdscr.refresh()
+
+    curses.echo()
+    curses.curs_set(1)
+
+    # Get user input on the line below the prompt
+    stdscr.move(input_y, 0)
+    user_input = stdscr.getstr(input_y, 0, max_x - 1).decode("utf-8").strip()
+
+    curses.noecho()
+    curses.curs_set(0)
+    return user_input
+
+
+def truncate_ciphertext(encrypted_message):
+    """
+    Truncate long ciphertexts to improve display readability.
+
+    Args:
+        encrypted_message (bytes): Encrypted message to potentially truncate
+
+    Returns:
+        str: Truncated hexadecimal representation of the ciphertext
+    """
+    hex_message = encrypted_message.hex()
+    if len(hex_message) > 70:
+        return f"{hex_message[:30]}...{hex_message[-30:]}"
+    return hex_message
+
+
+def main(stdscr):
+    """
+    Main function for interactive RSA Cryptography program.
+    """
+    curses.curs_set(0)
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+
+    rsa_handler = RSAHandler()
+    history = [display_ascii_art(stdscr)]  # Initialize history with ASCII art
+    last_encrypted_message = None
+    keys_folder = None
+
+    menu = [
+        "Generate RSA keypairs",
+        "Encrypt message",
+        "Decrypt message",
+        "Encrypt file",
+        "Decrypt file",
+        "Acts as a server",
+        "Acts as a client",
+        "Quit",
+    ]
+
+    while True:
+        selected = menu_navigation(stdscr, menu, history)
+
+        if selected == 0:  # Generate RSA keypairs
+            save_path = get_user_input(
+                stdscr,
+                "Input path to save keypair (default: current directory): ",
+                history,
+            )
+            save_path = save_path if save_path else os.getcwd()
             keys_folder = os.path.join(save_path, ".keys")
-            if not os.path.exists(keys_folder):
-                os.makedirs(keys_folder)
+            os.makedirs(keys_folder, exist_ok=True)
 
-            # Generate kunci RSA.
             public_key, private_key = rsa_handler.generate_keypair()
-            print("Public Key:")
-            print(public_key.export_key().decode())  # Tampilkan kunci public.
-            print("Private Key:")
-            print(private_key.export_key().decode())  # Tampilkan kunci private.
             rsa_handler.save_key(
                 public_key, os.path.join(keys_folder, "rsa_pkcs1_oaep.pub")
             )
             rsa_handler.save_key(
                 private_key, os.path.join(keys_folder, "rsa_pkcs1_oaep")
             )
-            print("Keypair berhasil di generate dan di simpan di: ", keys_folder)
+            message = f"Keys saved in {keys_folder}."
+            history.append(message)
 
-        elif choice in ["2", "3", "4", "5"]:
-            """
-            Opsi untuk enkripsi/dekripsi pesan atau file.
-            Jika folder kunci belum ditentukan, pengguna akan diminta untuk memasukkan lokasinya.
-            """
+        elif selected in range(1, 7):  # Encryption/Decryption options
             if keys_folder is None:
-                keys_folder = input(
-                    "Input path folder .keys atau ketik (R)etry jika Anda belum men-generate keypair : "
-                )
+                history.append("Keys folder not set. Generate keypair first.")
+                continue
 
-                if keys_folder.lower() == "r" or keys_folder.lower() == "retry":
-                    keys_folder = None
-                    continue
-
-                if not os.path.exists(keys_folder):
-                    keys_folder = None
-                    print("Folder tidak ditemukan. Silakan coba lagi.")
-                    continue
-
-            if choice == "2":
-                # Mengenkripsi pesan.
-                message = input("Input pesan yang ingin dienkripsi: ")
+            if selected == 1:  # Encrypt message
+                message = get_user_input(stdscr, "Enter message to encrypt: ", history)
                 public_key = rsa_handler.load_key(
                     os.path.join(keys_folder, "rsa_pkcs1_oaep.pub")
                 )
                 encrypted_message = rsa_handler.encrypt(public_key, message)
-                print("Encrypted Message:", encrypted_message.hex())
+                last_encrypted_message = encrypted_message
+                result = f"Encrypted Message: {truncate_ciphertext(encrypted_message)}"
+                history.append(result)
 
-            elif choice == "3":
-                # Mendekripsi pesan.
-                encrypted_message = bytes.fromhex(
-                    input("Input pesan yang ingin didekripsi (hex): ")
-                )
+            elif selected == 2:  # Decrypt message
+                if last_encrypted_message is None:
+                    history.append(
+                        "Error: No encrypted message available. Encrypt a message first."
+                    )
+                    continue
+
                 private_key = rsa_handler.load_key(
                     os.path.join(keys_folder, "rsa_pkcs1_oaep")
                 )
-                decrypted_message = rsa_handler.decrypt(private_key, encrypted_message)
-                print("Decrypted Message:", decrypted_message)
+                decrypted_message = rsa_handler.decrypt(
+                    private_key, last_encrypted_message
+                )
+                result = f"Decrypted Message: {decrypted_message}"
+                history.append(result)
+                last_encrypted_message = None
 
-            elif choice == "4":
-                # Mengenkripsi file.
-                filename = input("Input nama file yang ingin dienkripsi: ")
+            elif selected == 3:  # Encrypt file
+                filename = get_user_input(
+                    stdscr, "Enter file name to encrypt: ", history
+                )
                 public_key = rsa_handler.load_key(
                     os.path.join(keys_folder, "rsa_pkcs1_oaep.pub")
                 )
@@ -161,11 +339,13 @@ def main():
                 encrypted_message = rsa_handler.encrypt(public_key, message)
                 with open(filename + ".enc", "wb") as f:
                     f.write(encrypted_message)
-                print("File berhasil dienkripsi dan dengan nama", filename + ".enc")
+                result = f"File encrypted as {filename}.enc"
+                history.append(result)
 
-            elif choice == "5":
-                # Mendekripsi file.
-                filename = input("Input nama file yang ingin didekripsi: ")
+            elif selected == 4:  # Decrypt file
+                filename = get_user_input(
+                    stdscr, "Enter file name to decrypt: ", history
+                )
                 private_key = rsa_handler.load_key(
                     os.path.join(keys_folder, "rsa_pkcs1_oaep")
                 )
@@ -174,21 +354,25 @@ def main():
                 decrypted_message = rsa_handler.decrypt(private_key, encrypted_message)
                 with open(filename + ".dec", "w") as f:
                     f.write(decrypted_message)
-                print("File berhasil didekripsi!")
+                result = f"File decrypted as {filename}.dec"
+                history.append(result)
 
-        elif choice == "6" or choice.lower() == "q" or choice.lower() == "quit":
-            # Keluar dari program.
-            user_name = input("siapa namamu tuan? ")
-            print(f"bye bye c u la8r {user_name} muah")
-            break
-        else:
-            # Opsi tidak valid.
-            print(f"Pilihan {choice} tidak valid. Silakan coba lagi.")
+            elif selected == 5:  # Acts as a server
+                if keys_folder is None:
+                    history.append("Keys folder not set. Generate keypair first.")
+                    continue
+                act_as_server(stdscr, rsa_handler, keys_folder, history)
+
+            elif selected == 6:  # Acts as a client
+                if keys_folder is None:
+                    history.append("Keys folder not set. Generate keypair first.")
+                    continue
+                act_as_client(stdscr, rsa_handler, keys_folder, history)
+
+            elif selected == 7:  # Quit
+                history.append("Goodbye!")
+                break
 
 
 if __name__ == "__main__":
-    """
-    Entry point program.
-    Program akan menjalankan fungsi main() saat file ini dijalankan langsung.
-    """
-    main()
+    curses.wrapper(main)
