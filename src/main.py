@@ -19,16 +19,12 @@ def receive_all(sock, length):
     return data
 
 
-def act_as_client(stdscr, rsa_handler, keys_folder, history):
+def act_as_client(stdscr, rsa_handler, history):
     host = get_user_input(stdscr, "Enter server IP address: ", history)
     port = 5000
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setblocking(False)
-
-    # Load client's keys
-    public_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep.pub"))
-    private_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep"))
 
     try:
         client_socket.connect((host, port))
@@ -60,10 +56,6 @@ def act_as_client(stdscr, rsa_handler, keys_folder, history):
     server_public_key = rsa_handler.import_key(server_public_key_bytes)
 
     try:
-        # Send client's public key to server
-        client_public_key_bytes = public_key.export_key()
-        client_socket.sendall(client_public_key_bytes)
-
         # Get message to send
         message = get_user_input(stdscr, "Enter message to encrypt: ", history)
         encrypted_message = rsa_handler.encrypt(server_public_key, message)
@@ -435,6 +427,10 @@ def main(stdscr):
             history.append(message)
 
         elif selected in range(1, 7):  # Encryption/Decryption options
+            if selected == 6:  # Acts as a client
+                act_as_client(stdscr, rsa_handler, history)
+                continue
+
             if keys_folder is None:
                 message = get_user_input(
                     stdscr,
@@ -539,9 +535,6 @@ def main(stdscr):
 
             elif selected == 5:  # Acts as a server
                 act_as_server(stdscr, rsa_handler, keys_folder, history)
-
-            elif selected == 6:  # Acts as a client
-                act_as_client(stdscr, rsa_handler, keys_folder, history)
 
         if selected is None:  # Quit condition
             break

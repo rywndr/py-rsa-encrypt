@@ -95,3 +95,16 @@ class RSAHandler:
         """
         with open(filename, "rb") as f:
             return RSA.import_key(f.read())  # Baca file dan impor kembali ke format RSA
+
+    @staticmethod
+    def import_key(key_data):
+        """
+        Mengimpor kunci RSA dari byte atau string PEM.
+
+        Parameter:
+        - key_data: Data kunci dalam format byte atau string PEM.
+
+        Return:
+        - Objek kunci RSA.
+        """
+        return RSA.import_key(key_data)
