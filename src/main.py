@@ -6,67 +6,17 @@ import socket
 from lib.rsa import RSAHandler
 
 
-def act_as_server(stdscr, rsa_handler, keys_folder, history):
-    host = "0.0.0.0"
-    port = 5000
-
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_socket.bind((host, port))
-    server_socket.listen(1)
-    server_socket.setblocking(False)
-
-    # Load server's public key to send to client
-    public_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep.pub"))
-    private_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep"))
-
-    history.append(f"Server listening on {host}:{port}")
-
-    stdscr.refresh()
-
-    inputs = [server_socket]
-    try:
-        while True:
-            readable, _, _ = select.select(inputs, [], [], 1)
-
-            if server_socket in readable:
-                conn, address = server_socket.accept()
-                conn.setblocking(False)
-                inputs.append(conn)
-                history.append(f"Connection from: {address}")
-
-                # Send public key to client
-                conn.send(public_key.encode())
-                stdscr.refresh()
-
-            for s in readable:
-                if s is not server_socket:
-                    try:
-                        data = s.recv(4096)
-                        if not data:
-                            inputs.remove(s)
-                            s.close()
-                            continue
-
-                        # Decrypt the received message
-                        decrypted_message = rsa_handler.decrypt(private_key, data)
-                        history.append(f"Received and decrypted: {decrypted_message}")
-                        stdscr.refresh()
-
-                        # Optional: send back an acknowledgment
-                        response = f"Server received: {decrypted_message}"
-                        encrypted_response = rsa_handler.encrypt(public_key, response)
-                        s.send(encrypted_response)
-
-                    except Exception as e:
-                        history.append(f"Error processing client message: {str(e)}")
-                        inputs.remove(s)
-                        s.close()
-
-    except KeyboardInterrupt:
-        history.append("Server shutting down")
-    finally:
-        server_socket.close()
+def receive_all(sock, length):
+    """
+    Ensure that exactly length bytes are read from the socket.
+    """
+    data = b""
+    while len(data) < length:
+        chunk = sock.recv(length - len(data))
+        if not chunk:  # Connection closed
+            raise ConnectionError("Socket connection closed before receiving all data.")
+        data += chunk
+    return data
 
 
 def act_as_client(stdscr, rsa_handler, keys_folder, history):
@@ -82,49 +32,130 @@ def act_as_client(stdscr, rsa_handler, keys_folder, history):
 
     try:
         client_socket.connect((host, port))
-    except socket.error as e:
-        if e.errno != 115:  # Not in progress
-            history.append(f"Connection error: {str(e)}")
-            return
+    except BlockingIOError:
+        pass
 
     history.append(f"Connecting to {host}:{port}")
     stdscr.refresh()
 
     # Wait for server's public key
-    server_public_key = None
-    while not server_public_key:
-        readable, _, _ = select.select([client_socket], [], [], 5)
-        if readable:
-            server_public_key = client_socket.recv(4096).decode()
-            history.append("Received server's public key")
-            break
+    server_public_key_bytes = None
+    while not server_public_key_bytes:
+        try:
+            readable, _, _ = select.select([client_socket], [], [], 5)
+            if readable:
+                server_public_key_bytes = client_socket.recv(4096)
+                history.append("Received server's public key")
+        except Exception as e:
+            history.append(f"Error during public key exchange: {str(e)}")
+            client_socket.close()
+            return
 
-    if not server_public_key:
+    if not server_public_key_bytes:
         history.append("Failed to receive server's public key")
         client_socket.close()
         return
 
-    # Get message to send
-    message = get_user_input(stdscr, "Enter message to encrypt: ", history)
+    # Load server's public key
+    server_public_key = rsa_handler.import_key(server_public_key_bytes)
 
-    # Encrypt and send message
-    encrypted_message = rsa_handler.encrypt(server_public_key, message)
-    client_socket.send(encrypted_message)
+    try:
+        # Send client's public key to server
+        client_public_key_bytes = public_key.export_key()
+        client_socket.sendall(client_public_key_bytes)
 
-    history.append(f"Sent encrypted message: {truncate_ciphertext(encrypted_message)}")
+        # Get message to send
+        message = get_user_input(stdscr, "Enter message to encrypt: ", history)
+        encrypted_message = rsa_handler.encrypt(server_public_key, message)
+
+        # Send encrypted message
+        message_length = len(encrypted_message).to_bytes(4, "big")
+        client_socket.sendall(message_length + encrypted_message)
+        history.append(
+            f"Sent encrypted message: {truncate_ciphertext(encrypted_message)}"
+        )
+    except BrokenPipeError:
+        history.append("Connection closed by server.")
+    except Exception as e:
+        history.append(f"Error sending message: {str(e)}")
+    finally:
+        client_socket.close()
+
+
+def act_as_server(stdscr, rsa_handler, keys_folder, history):
+    host = "0.0.0.0"
+    port = 5000
+
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((host, port))
+    server_socket.listen(1)
+    server_socket.setblocking(False)
+
+    public_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep.pub"))
+    private_key = rsa_handler.load_key(os.path.join(keys_folder, "rsa_pkcs1_oaep"))
+
+    history.append(f"Server listening on {host}:{port}")
     stdscr.refresh()
 
-    # Wait for server response
+    inputs = [server_socket]
     try:
-        readable, _, _ = select.select([client_socket], [], [], 5)
-        if readable:
-            response = client_socket.recv(4096)
-            decrypted_response = rsa_handler.decrypt(private_key, response)
-            history.append(f"Server response: {decrypted_response}")
-    except Exception as e:
-        history.append(f"Error receiving server response: {str(e)}")
+        while True:
+            readable, _, _ = select.select(inputs, [], [], 1)  # 1-second timeout
+            for s in readable:
+                if s is server_socket:
+                    conn, address = server_socket.accept()
+                    conn.setblocking(False)
+                    inputs.append(conn)
+                    history.append(f"Connection from: {address}")
+                    stdscr.refresh()
 
-    client_socket.close()
+                    # Send public key immediately after connection
+                    public_key_bytes = public_key.export_key()
+                    conn.sendall(public_key_bytes)
+                else:
+                    try:
+                        # Read length of incoming message
+                        if s in readable:
+                            length_bytes = s.recv(4)
+                            if not length_bytes:
+                                raise ConnectionError("Client disconnected.")
+
+                            message_length = int.from_bytes(length_bytes, "big")
+                            encrypted_message = receive_all(s, message_length)
+
+                            # Decrypt the message
+                            decrypted_message = rsa_handler.decrypt(
+                                private_key, encrypted_message
+                            )
+                            history.append(
+                                f"Received and decrypted message: {decrypted_message}"
+                            )
+                            stdscr.refresh()
+
+                            # Send response
+                            response = f"Server received: {decrypted_message}"
+                            response_encrypted = rsa_handler.encrypt(
+                                public_key, response
+                            )
+                            response_length = len(response_encrypted).to_bytes(4, "big")
+                            s.sendall(response_length + response_encrypted)
+                    except BlockingIOError:
+                        # No data available, continue to the next socket
+                        continue
+                    except ConnectionError as e:
+                        history.append(f"Connection closed: {str(e)}")
+                        inputs.remove(s)
+                        s.close()
+                    except Exception as e:
+                        history.append(f"Error: {str(e)}")
+                        inputs.remove(s)
+                        s.close()
+    except KeyboardInterrupt:
+        history.append("Server shutting down")
+        stdscr.refresh()
+    finally:
+        server_socket.close()
 
 
 def display_ascii_art(stdscr):
@@ -148,10 +179,33 @@ __________  _________   _____    ___________ _______  ________________________._
     return art
 
 
+def manage_history(history, max_entries=8):
+    """
+    Manage the history list to prevent it from growing too large.
+
+    Args:
+        history (list): List of history entries
+        max_entries (int, optional): Maximum number of entries to keep. Defaults to 8.
+
+    Returns:
+        list: Managed history list
+    """
+    # Always keep the first entry (ASCII art)
+    if len(history) > max_entries:
+        # Keep the first entry (ASCII art) and the most recent entries
+        return [history[0]] + history[-max_entries:]
+    return history
+
+
 def menu_navigation(stdscr, menu, history):
     """
-    Display menu and allow navigation using arrow keys or vim keys.
+    Display menu on the left side and history on the right side with a labeled messages section.
+
+    Modify the function to use the new history management
     """
+    # Manage history before display
+    history = manage_history(history)
+
     current_row = 0
     max_y, max_x = stdscr.getmaxyx()
 
@@ -159,22 +213,21 @@ def menu_navigation(stdscr, menu, history):
     ascii_art_lines = history[0].split("\n")
     ascii_art_height = len(ascii_art_lines)
 
-    # Calculate available space for history
-    max_history_lines = (
-        max_y - ascii_art_height - len(menu) - 4
-    )  # Reserve space for menu and input
+    # Calculate screen layout
+    menu_width = max_x // 3  # Left third of the screen for menu
+    history_width = max_x - menu_width  # Right two-thirds for history
 
     while True:
         stdscr.clear()
 
-        # Display ASCII art at the top
+        # Display ASCII art at the top across full width
         for i, line in enumerate(ascii_art_lines):
             try:
-                stdscr.addstr(i, 0, line)
+                stdscr.addstr(i, 0, line[: max_x - 1])
             except curses.error:
                 pass  # Ignore potential screen boundary errors
 
-        # Display menu below ASCII art
+        # Menu section (left side)
         menu_start_y = ascii_art_height + 1
         menu_border = " ╔═════Menu═════════════════════╗"
         stdscr.addstr(menu_start_y, 0, menu_border)
@@ -190,17 +243,24 @@ def menu_navigation(stdscr, menu, history):
         menu_border = " ╚══════════════════════════════╝"
         stdscr.addstr(menu_start_y + len(menu) + 1, 0, menu_border)
 
-        # Display history below menu
-        history_start_y = menu_start_y + len(menu) + 2
+        # Messages section (right side)
+        messages_start_y = menu_start_y
+        messages_border = "══════Messages══════════════════════════"
+        messages_end_border = "═════════════════════════════════════════"
 
-        # Limit history to available space
+        # Draw messages border
+        stdscr.addstr(messages_start_y, menu_width, messages_border)
+        stdscr.addstr(messages_start_y + len(menu) + 1, menu_width, messages_end_border)
+
+        # Display history in the messages section
+        max_history_lines = len(menu)
         display_history = history[1 : max_history_lines + 1] if len(history) > 1 else []
 
         for i, hist_entry in enumerate(display_history):
             try:
                 # Truncate long lines to prevent wrapping
-                truncated_entry = hist_entry[: max_x - 1]
-                stdscr.addstr(history_start_y + i, 0, truncated_entry)
+                truncated_entry = hist_entry[: history_width - 4]
+                stdscr.addstr(messages_start_y + i + 1, menu_width + 1, truncated_entry)
             except curses.error:
                 break  # Stop if we run out of screen space
 
@@ -219,8 +279,10 @@ def menu_navigation(stdscr, menu, history):
 
 def get_user_input(stdscr, prompt, history):
     """
-    Display a prompt and get user input with proper spacing and no overlapping.
+    Display a prompt and get user input while preserving menu and history layout.
     """
+
+    history = manage_history(history)
     # Calculate screen dimensions
     max_y, max_x = stdscr.getmaxyx()
 
@@ -228,16 +290,6 @@ def get_user_input(stdscr, prompt, history):
     ascii_art_lines = history[0].split("\n")
     ascii_art_height = len(ascii_art_lines)
 
-    stdscr.clear()
-
-    # Display ASCII art at the top
-    for i, line in enumerate(ascii_art_lines):
-        try:
-            stdscr.addstr(i, 0, line)
-        except curses.error:
-            pass  # Ignore potential screen boundary errors
-
-    # Calculate available space for history
     menu = [
         "Generate RSA keypairs",
         "Encrypt message",
@@ -248,34 +300,63 @@ def get_user_input(stdscr, prompt, history):
         "Acts as a client",
         "Quit",
     ]
-    max_history_lines = (
-        max_y - ascii_art_height - len(menu) - 4
-    )  # Reserve space for menu and input
 
-    # Display history
-    history_start_y = ascii_art_height + 1
-
-    # Limit history to available space
-    display_history = history[1 : max_history_lines + 1] if len(history) > 1 else []
-
-    for i, hist_entry in enumerate(display_history):
-        try:
-            # Truncate long lines to prevent wrapping
-            truncated_entry = hist_entry[: max_x - 1]
-            stdscr.addstr(history_start_y + i, 0, truncated_entry)
-        except curses.error:
-            break  # Stop if we run out of screen space
+    # Split the screen into sections
+    menu_width = max_x // 3  # Left third of the screen for menu
+    history_width = max_x - menu_width  # Right two-thirds for history
 
     # Calculate input start position
     input_prompt_y = max_y - 3
     input_y = max_y - 2
 
-    # Clear the lines we'll use for input
+    # Clear the input lines
     stdscr.addstr(input_prompt_y, 0, " " * max_x)
     stdscr.addstr(input_y, 0, " " * max_x)
 
-    # Display prompt for input at the bottom of the screen
+    # Display prompt for input
     stdscr.addstr(input_prompt_y, 0, prompt)
+
+    # Preserve previous screen layout
+    # Redraw ASCII art
+    for i, line in enumerate(ascii_art_lines):
+        try:
+            stdscr.addstr(i, 0, line[: max_x - 1])
+        except curses.error:
+            pass  # Ignore potential screen boundary errors
+
+    # Redraw menu section (left side)
+    menu_start_y = ascii_art_height + 1
+    menu_border = " ╔═════Menu═════════════════════╗"
+    stdscr.addstr(menu_start_y, 0, menu_border)
+
+    for idx, row in enumerate(menu):
+        stdscr.addstr(menu_start_y + idx + 1, 1, f"║ {row}")
+
+    menu_border = " ╚══════════════════════════════╝"
+    stdscr.addstr(menu_start_y + len(menu) + 1, 0, menu_border)
+
+    # Redraw Messages section (right side)
+    messages_start_y = menu_start_y
+    messages_border = "══════Messages══════════════════════════"
+    messages_end_border = "═════════════════════════════════════════"
+
+    # Draw messages border
+    stdscr.addstr(messages_start_y, menu_width, messages_border)
+    stdscr.addstr(messages_start_y + len(menu) + 1, menu_width, messages_end_border)
+
+    # Display history in the messages section
+    max_history_lines = len(menu)
+    display_history = history[1 : max_history_lines + 1] if len(history) > 1 else []
+
+    for i, hist_entry in enumerate(display_history):
+        try:
+            # Truncate long lines to prevent wrapping
+            truncated_entry = hist_entry[: history_width - 4]
+            stdscr.addstr(messages_start_y + i + 1, menu_width + 1, truncated_entry)
+        except curses.error:
+            break  # Stop if we run out of screen space
+
+    # Move cursor to input line and get input
     stdscr.refresh()
 
     curses.echo()
@@ -377,13 +458,15 @@ def main(stdscr):
                 )
                 encrypted_message = rsa_handler.encrypt(public_key, message)
                 last_encrypted_message = encrypted_message
-                result = f"Encrypted Message: {truncate_ciphertext(encrypted_message)}"
+                untrunked_message = f"Encrypted message: {encrypted_message}"
+                result = f"Truncated message: {truncate_ciphertext(encrypted_message)}"
+                history.append(untrunked_message)
                 history.append(result)
 
                 # Ask if user wants to save the encrypted message
                 save_option = get_user_input(
                     stdscr,
-                    "Do you want to save the encrypted message? (y/n): ",
+                    "Do you want to save the encrypted message? (y/N): ",
                     history,
                 )
 
@@ -399,22 +482,30 @@ def main(stdscr):
 
                     # Add to history
                     history.append(f"Encrypted message saved to {encrypted_file_path}")
-            elif selected == 2:  # Decrypt message
-                if last_encrypted_message is None:
-                    history.append(
-                        "Error: No encrypted message available. Encrypt a message first."
-                    )
+                else:
                     continue
 
-                private_key = rsa_handler.load_key(
-                    os.path.join(keys_folder, "rsa_pkcs1_oaep")
-                )
-                decrypted_message = rsa_handler.decrypt(
-                    private_key, last_encrypted_message
-                )
-                result = f"Decrypted Message: {decrypted_message}"
-                history.append(result)
-                last_encrypted_message = None
+            elif selected == 2:  # Decrypt message
+                try:
+                    if last_encrypted_message is None:
+                        history.append(
+                            "Error: No encrypted message available. Encrypt a message first."
+                        )
+                        continue
+
+                    private_key = rsa_handler.load_key(
+                        os.path.join(keys_folder, "rsa_pkcs1_oaep")
+                    )
+                    decrypted_message = rsa_handler.decrypt(
+                        private_key, last_encrypted_message
+                    )
+                    result = f"Decrypted Message: {decrypted_message}"
+                    history.append(result)
+                    last_encrypted_message = None
+
+                except ValueError as e:
+                    history.append(f"Incorrect Private key unable to decrypt: {str(e)}")
+                    continue
 
             elif selected == 3:  # Encrypt file
                 filename = get_user_input(
