@@ -158,6 +158,64 @@ Modul ini menambahkan antarmuka interaktif untuk pengguna. Anda dapat:
     - Menjalankan program sebagai server untuk mensimulasikan pengiriman pesan antar server dan client
     - Menjalankan program sebagai client untuk mensimulasikan pengiriman pesan antar server dan client
 
+### Option 1:
+
+![gen-1](https://github.com/rywndr/rsa/blob/main/img/gen-1.png?raw=true)
+Saat user memilih opsi 1, program akan menanyakan user ingin menyimpan folder kunci di mana. jika user tidak memberi opsi (biarkan kosong) maka program akan secara default menyimpan folder kunci yang berisi kunci public dan private nya di directory yang sama dengan program.
+
+![gen-2](https://github.com/rywndr/rsa/blob/main/img/gen-2.png?raw=true)
+Setelah user memilih dimana folder kunci akan disimpan, program akan membuat keypair RSA dan menyimpannya di folder yang telah ditentukan.
+
+### Option 2:
+
+![en-1](https://github.com/rywndr/rsa/blob/main/img/en-1.png?raw=true)
+Saat user memilih opsi 2, program akan menanyakan user ingin mengenkripsi pesan apa. User dapat memasukkan pesan yang ingin dienkripsi.
+
+![en-2](https://github.com/rywndr/rsa/blob/main/img/en-2.png?raw=true)
+Setelah user memasukkan pesan yang ingin dienkripsi, program akan menampilkan byte dari pesan yang dienkripsi. dan hex dari byte tersebut dan menanyakan user apakah ingin menyimpan pesan yang dienkripsi ke file.
+
+### Option 3:
+
+![de-1](https://github.com/rywndr/rsa/blob/main/img/de-1.png?raw=true)
+Saat user memilih opsi 3, program akan mendekripsi pesan yang telah di enkripsi user sebelumnya saat memilih opsi 2
+
+### Option 4:
+
+![enf-1](https://github.com/rywndr/rsa/blob/main/img/enf-1.png?raw=true)
+Saat user memilih opsi 4, program akan menanyakan user ingin mengenkripsi file apa. User dapat memasukkan path dari file yang ingin dienkripsi.
+
+![enf-2](https://github.com/rywndr/rsa/blob/main/img/enf-2.png?raw=true)
+Setelah itu program akan memberitahu user bahwa file tersebut sudah berhasil di enkripsi dan di save sebagai nama file apa
+
+### Option 5:
+
+![def-1](https://github.com/rywndr/rsa/blob/main/img/def-1.png?raw=true)
+Saat user memilih opsi 5, program akan bertanya ke user path dari file yang ingin di dekripsi
+
+![def-2](https://github.com/rywndr/rsa/blob/main/img/def-2.png?raw=true)
+Setelah itu program akan memberitahu user bahwa file tersebut sudah berhasil di dekripsi dan di save sebagai nama file apa
+
+### Option 6:
+
+![server](https://github.com/rywndr/rsa/blob/main/img/server.png?raw=true)
+Saat user memilih opsi 6, program akan mensimulasikan pengiriman pesan antar server dan client dan akan mendengarkan network untuk incoming connection dari client, setelah client terhubung, server akan mengirimkan public key nya ke client dan client akan mengirimkan pesan yang ingin di enkripsi ke server, setelah server mendapatkan pesan tersebut, server akan mendekripsikan pesan yang baru saja diterima dari client.
+
+### Option 7:
+
+![client-1](https://github.com/rywndr/rsa/blob/main/img/client-1.png?raw=true)
+Saat user memilih opsi 7, program akan mensimulasikan pengiriman pesan antar server dan client dan awalnya akan menanyakan IP address dari server yang ingin dihubungi.
+
+![client-2](https://github.com/rywndr/rsa/blob/main/img/client-2.png?raw=true)
+Setelah itu program akan mencoba untuk terhubung ke server yang telah ditentukan oleh user, setelah terhubung, client akan menerima public key dari server
+
+![client-3](https://github.com/rywndr/rsa/blob/main/img/client-3.png?raw=true)
+Setelah menerima public key dari server, client akan mengirimkan pesan yang ingin di enkripsi ke server, setelah server mendapatkan pesan tersebut, server akan mendekripsikan pesan yang baru saja diterima dari client.
+
+### Note:
+
+![re](https://github.com/rywndr/rsa/blob/main/img/re.png?raw=true)
+Saat user memilih selain opsi quit dan opsi berperan sebagai client, dan user belum mengenerate keypair RSA, maka program akan memberitahu user untuk menggenerate keypair RSA atau menginputkan path dari folder kunci yang sudah ada.
+
 #### Code snippet 📜:
 
 ```python
