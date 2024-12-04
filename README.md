@@ -1,5 +1,9 @@
 # 🎓 Program RSA Cryptography menggunakan standar PKCS1_OAEP dengan Python🛡️
 
+## Main program display
+
+![Main Program Display](https://github.com/rywndr/rsa/blob/main/img/main.png?raw=true)
+
 ## 🛠️ [Asymmetric Encryption](https://id.wikipedia.org/wiki/Kriptografi_kunci_publik): Apa Itu dan Mengapa Penting?
 
 Asymmetric encryption adalah metode enkripsi yang menggunakan dua kunci berbeda:
