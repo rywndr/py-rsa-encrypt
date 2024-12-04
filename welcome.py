@@ -6,6 +6,6 @@ hanya script sederhana untuk estetika
 
 text = "H&M GROUP"
 
-ascii_art = pyfiglet.figlet_format(text, font="isometric1")
+ascii_art = pyfiglet.figlet_format(text, font="doom")
 
 print(ascii_art)

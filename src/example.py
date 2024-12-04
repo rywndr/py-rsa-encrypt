@@ -57,10 +57,10 @@ def main():
 
     # 4. Enkripsi pesan
     """
-    Mengenkripsi pesan "Hello, World!" menggunakan kunci public.
+    Mengenkripsi pesan menggunakan kunci public.
     Hasil enkripsi ditampilkan dalam format hexadecimal untuk memudahkan pembacaan.
     """
-    message = "Hello, World!"  # Pesan asli yang akan dienkripsi
+    message = "Ini pesan rahasia!"  # Pesan asli yang akan dienkripsi
     encrypted_message = rsa_handler.encrypt(public_key, message)
     print(
         "Encrypted Message:", encrypted_message.hex()
