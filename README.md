@@ -168,10 +168,10 @@ Setelah user memilih dimana folder kunci akan disimpan, program akan membuat key
 
 ### Option 2:
 
-![en-1](https://github.com/rywndr/rsa/blob/main/img/en-1.png?raw=true)
+![en1](https://github.com/rywndr/rsa/blob/main/img/en1.png?raw=true)
 Saat user memilih opsi 2, program akan menanyakan user ingin mengenkripsi pesan apa. User dapat memasukkan pesan yang ingin dienkripsi.
 
-![en-2](https://github.com/rywndr/rsa/blob/main/img/en-2.png?raw=true)
+![en2](https://github.com/rywndr/rsa/blob/main/img/en2.png?raw=true)
 Setelah user memasukkan pesan yang ingin dienkripsi, program akan menampilkan byte dari pesan yang dienkripsi. dan hex dari byte tersebut dan menanyakan user apakah ingin menyimpan pesan yang dienkripsi ke file.
 
 ### Option 3:
@@ -198,6 +198,8 @@ Setelah itu program akan memberitahu user bahwa file tersebut sudah berhasil di 
 ### Option 6:
 
 ![server](https://github.com/rywndr/rsa/blob/main/img/server.png?raw=true)
+Untuk demonstrasi simulasi server dan client, kami menggunakan 2 linux virtual machine, yang satunya akan berperan sebagai server dan satunya lagi berperan sebagai client, dalam kasus ini servernya kami menggunakan Lubuntu dan client kami menggunakan Arch linux.
+
 Saat user memilih opsi 6, program akan mensimulasikan pengiriman pesan antar server dan client dan akan mendengarkan network untuk incoming connection dari client, setelah client terhubung, server akan mengirimkan public key nya ke client dan client akan mengirimkan pesan yang ingin di enkripsi ke server, setelah server mendapatkan pesan tersebut, server akan mendekripsikan pesan yang baru saja diterima dari client.
 
 ### Option 7:
