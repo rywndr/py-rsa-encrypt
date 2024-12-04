@@ -1,9 +1,5 @@
 # 🎓 Program RSA Cryptography menggunakan standar PKCS1_OAEP dengan Python🛡️
 
-## Main program display
-
-![Main Program Display](https://github.com/rywndr/rsa/blob/main/img/main.png?raw=true)
-
 ## 🛠️ [Asymmetric Encryption](https://id.wikipedia.org/wiki/Kriptografi_kunci_publik): Apa Itu dan Mengapa Penting?
 
 Asymmetric encryption adalah metode enkripsi yang menggunakan dua kunci berbeda:
@@ -150,12 +146,17 @@ print("Encrypted Message:", encrypted_message.hex())
 
 ### 3️⃣ Modul main.py: Program Utama Interaktif
 
+![Main Program Display](https://github.com/rywndr/rsa/blob/main/img/main.png?raw=true)
+
 Modul ini menambahkan antarmuka interaktif untuk pengguna. Anda dapat:
 
-    - Membuat kunci RSA.
-    - Mengenkripsi/mendekripsi pesan atau file.
-    - Menyimpan kunci di lokasi tertentu.
-    - Berperan sebagai server atau klien untuk pertukaran kunci.
+    - Membuat Keypair RSA (Public key dan Private key).
+    - Mengenkripsi Pesan yang di Inputkan oleh User
+    - Mendekripsi Pesan yang di Inputkan oleh User
+    - Mengenkripsi sebuah file yang di inputkan oleh User
+    - Mendekripsi sebuah file yang di inputkan oleh User
+    - Menjalankan program sebagai server untuk mensimulasikan pengiriman pesan antar server dan client
+    - Menjalankan program sebagai client untuk mensimulasikan pengiriman pesan antar server dan client
 
 #### Code snippet 📜:
 
