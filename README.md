@@ -248,7 +248,7 @@ def main(stdscr):
 
 #### ✅ Penjelasan: Menu ini memandu pengguna melalui berbagai opsi dengan antarmuka berbasis teks menggunakan curses
 
----
+## Untuk penjelasan kode yang lebih lengkap ada di module [example.py](https://github.com/rywndr/rsa/blob/main/src/example.py) dilengkapi dengan komentar tiap baris kode.
 
 ### 🛠️ Cara Menggunakan Program Ini (How To)
 
