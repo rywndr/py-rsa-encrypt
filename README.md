@@ -151,21 +151,37 @@ Modul ini menambahkan antarmuka interaktif untuk pengguna. Anda dapat:
     - Membuat kunci RSA.
     - Mengenkripsi/mendekripsi pesan atau file.
     - Menyimpan kunci di lokasi tertentu.
+    - Berperan sebagai server atau klien untuk pertukaran kunci.
 
 #### Code snippet 📜:
 
 ```python
-def main():
-    display_ascii_art()
-    print("Selamat datang di program RSA Cryptography!")
-    while True:
-        print("1. Generate RSA keypairs")
-        print("2. Encrypt message")
-        print("3. Decrypt message")
-        print("6. Quit")
+def main(stdscr):
+    """
+    Main function for interactive RSA Cryptography program.
+    """
+    curses.curs_set(0)
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+
+    rsa_handler = RSAHandler()
+    history = [display_ascii_art(stdscr)]  # Initialize history with ASCII art
+    last_encrypted_message = None
+    keys_folder = None
+
+    menu = [
+        "Generate RSA keypairs",
+        "Encrypt message",
+        "Decrypt message",
+        "Encrypt file",
+        "Decrypt file",
+        "Acts as a server",
+        "Acts as a client",
+        "Quit",
+    ]
 ```
 
-#### ✅ Penjelasan: Menu ini memandu pengguna melalui berbagai opsi dengan antarmuka berbasis teks.
+#### ✅ Penjelasan: Menu ini memandu pengguna melalui berbagai opsi dengan antarmuka berbasis teks menggunakan curses
 
 ---
 
