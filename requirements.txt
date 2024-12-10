@@ -1,2 +1,9 @@
+evdev==1.7.1
 pycryptodome==3.21.0
-pyfiglet==1.0.2 # Optional hanya untuk estetika
+pyfiglet==1.0.2
+python-xlib==0.33
+six==1.16.0
+termcolor==2.5.0
+
+# optional for windows users
+# windows-curses
