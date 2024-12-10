@@ -143,6 +143,78 @@ maka dari itu, public key mengandung $n$ dan $e$ yaitu $e = 65537$ dan private k
 
 ---
 
+### Setelah mengetahui cara RSA mengenerate keypair nya, kita akan melihat bagaimana RSA mengenkripsi dan mendekripsi pesan
+
+### Enkripsi
+
+Saat mengenkripsi pesan, tiap karakter diubah menjadi bilangan bulat berdasarkan representasi ASCII nya masing masing.
+
+Contoh:
+
+Plaintext = "HELLO"
+Konversi ASCII: [72, 69, 76, 76, 79]
+Digabung menjadi satu bilangan: 7269767679
+
+Setelah itu, bilangan tersebut dienkripsi menggunakan public key.
+
+Untuk mengenkrisi pesan menggunakan public key ($n$, $e$), kita menggunakan rumus berikut:
+
+$$
+C = M^e \mod n
+$$
+
+- $C$ adalah ciphertext.
+- $M$ adalah pesan yang dienkripsi.
+- $e$ adalah public exponent.
+- $n$ adalah modulus.
+
+Contoh:
+
+e = 65537 (public exponent yang biasa digunakan)
+m = 7269767679
+n = 240780832282852088714762452107475009764837884210889828532945737721821616841386662315456478622572214179904415981624198491748169116366234088098682073116410114015825545098019366303244116682682
+
+c di kalkulasi menggunakan modular exponentiation
+
+#### Tambahan = contoh enkripsi menggunakan PKCS#1 OAEP
+
+OAEP = Optimal Asymmetric Encryption Padding. Sebuah skema padding
+
+Contoh:
+
+$m = 7269767679$
+
+dengan padding menggunakan OAEP, m diubah menjadi:
+
+$$
+m = 0002...(random data)...7269767679
+$$
+
+Setelah itu, m dienkripsi menggunakan public key.
+
+### Dekripsi
+
+Saat mendekripsi pesan, ciphertext diubah kembali menjadi pesan asli menggunakan private key ($n$, $d$).
+
+Untuk mendekripsi pesan menggunakan private key ($n$, $d$), kita menggunakan rumus berikut:
+
+$$
+M = C^d \mod n
+$$
+
+- $M$ adalah pesan yang didekripsi.
+- $C$ adalah ciphertext.
+- $d$ adalah private exponent.
+- $n$ adalah modulus.
+
+Contoh:
+
+d = 152415787532388367504953515625666819450083828733760097552251181223112635269100888108037780593788270666394008965907259977997488977697537484345973954308188067
+c = 7269767679
+n = 240780832282852088714762452107475009764837884210889828532945737721821616841386662315456478622572214179904415981624198491748169116366234088098682073116410114015825545098019366303244116682682
+
+---
+
 ## 🧑‍💻 Panduan singkat Modul Program
 
 ### 1️⃣ Modul rsa.py: Modul utama untuk menangani operasi RSA
