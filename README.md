@@ -9,11 +9,6 @@ Asymmetric encryption adalah metode enkripsi yang menggunakan dua kunci berbeda:
 
 Berbeda dengan enkripsi simetris, di mana satu kunci yang sama digunakan untuk enkripsi dan dekripsi, enkripsi asimetris lebih aman karena private key hanya diketahui oleh penerimanya.
 
-## 📖 Contoh Penggunaan di dunia nyata
-
-    - Pengiriman Data Aman: Saat Anda mengakses situs web HTTPS, public key situs digunakan untuk mengenkripsi data yang Anda kirimkan (misalnya, kata sandi). Hanya situs tersebut yang dapat mendekripsi data dengan private key-nya.
-    - Tanda Tangan Digital: Dokumen ditandatangani dengan private key pengirim, sehingga penerima dapat memverifikasi keaslian dokumen menggunakan public key.
-
 ---
 
 ## 🔐 Apa Itu [RSA](https://id.wikipedia.org/wiki/RSA)?
@@ -27,7 +22,7 @@ RSA (Rivest–Shamir–Adleman) adalah salah satu algoritma enkripsi asimetris p
 
 ## 🛠️ [PyCryptodome](https://www.pycryptodome.org): Library Python untuk Kriptografi
 
-PyCryptodome adalah pustaka Python yang mendukung operasi kriptografi modern, termasuk RSA. Pustaka ini menyediakan:
+PyCryptodome adalah library Python yang mendukung operasi kriptografi modern, termasuk RSA. library ini menyediakan:
 
     - Algoritma kriptografi standar.
     - Dukungan untuk enkripsi RSA dengan berbagai padding, termasuk PKCS1_OAEP.
