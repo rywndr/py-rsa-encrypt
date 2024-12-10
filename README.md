@@ -1,4 +1,4 @@
-# 🎓 Program RSA Cryptography menggunakan standar PKCS1_OAEP dengan Python🛡️
+# 🎓 Program RSA Cryptography Modern menggunakan standar PKCS1_OAEP dengan Python🛡️
 
 ## 🛠️ [Asymmetric Encryption](https://id.wikipedia.org/wiki/Kriptografi_kunci_publik): Apa Itu dan Mengapa Penting?
 
