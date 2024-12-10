@@ -96,6 +96,53 @@ Jika menggunakan RSA tanpa padding:
 
 ---
 
+### Cara RSA mengenerate public key dan private key
+
+RSA mengenerate keypair nya dengan rumus berikut:
+
+$$
+n = p \times q
+$$
+
+$$
+\phi(n) = (p-1) \times (q-1)
+$$
+
+$$
+e \times d \equiv 1 \mod \phi(n)
+$$
+
+- $n$ adalah modulus.
+- $\phi(n)$ adalah fungsi Euler.
+- $e$ adalah public exponent.
+- $d$ adalah private exponent.
+
+### Contoh penerapan
+
+Dalam real world use, bilangan prima $p$ dan $q$ sangat besar dengan size yang terjangkau dari 512-bit hingga 4096-bit. untuk key RSA dengan size 2048-bit, $p$ dan $q$ yang masing masing memiliki 1024-bit contohnya seperti berikut:
+
+- $p = 17976931348623159077083915679378745319786029604875601170644442368419718021615851936894783379586492554150218056548598050364644054819923910005079287700335581663922955313623907650873575991482257488503244106244568377487935765733613030598998494747701675311447958994840391119450181891351603588225485726099365070673
+
+- $q = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084171
+
+contoh n =
+
+$$
+n = p \times q = 17976931348623159077083915679378745319786029604875601170644442368419718021615851936894783379586492554150218056548598050364644054819923910005079287700335581663922955313623907650873575991482257488503244106244568377487935765733613030598998494747701675311447958994840391119450181891351603588225485726099365070673 \times 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084171
+$$
+
+$$
+n = 240780832282852088714762452107475009764837884210889828532945737721821616841386662315456478622572214179904415981624198491748169116366234088098682073116410114015825545098019366303244116682682
+$$
+
+maka dari itu, public key mengandung $n$ dan $e$ yaitu $e = 65537$ dan private key mengandung $n$ dan $d$, dimana d di hitung dari $e \times d \equiv 1 \mod \phi(n)$
+
+#### Kenapa ini aman?
+
+- Karena faktorisasi dari $n$ yang besar sangat sulit dihitung. Seseorang harus memecahkan faktorisasi dari $n$ untuk mendapatkan $p$ dan $q$ yang dimana secara komputasi sangat sulit dihitung untuk $n$ 2048-bit.
+
+---
+
 ## 🧑‍💻 Panduan singkat Modul Program
 
 ### 1️⃣ Modul rsa.py: Modul utama untuk menangani operasi RSA
@@ -307,6 +354,12 @@ python main.py
 5. [PyCryptodome Documentation](https://www.pycryptodome.org)
 6. [Pycryptodome - RSA Source Code](https://github.com/Legrandin/pycryptodome/blob/master/lib/Crypto/PublicKey/RSA.py#L457-L536)
 7. [PyCryptodome - PKCS_OAEP Source Code](https://github.com/Legrandin/pycryptodome/blob/master/lib/Crypto/Cipher/PKCS1_OAEP.py#L196-L231)
+8. [The RSA Encryption Algorithm (1 of 2: Computing an Example)](https://www.youtube.com/watch?v=4zahvcJ9glg)
+9. [The RSA Encryption Algorithm (2 of 2: Key Generation)](https://www.youtube.com/watch?v=oOcTVTpUsPQ&t=445s)
+10. [How RSA Encryption Works](https://www.youtube.com/watch?v=ZPXVSJnDA_A)
+11. [RSA Algorithm How does it work?](https://www.youtube.com/watch?v=Pq8gNbvfaoM)
+12. [Crptography Standards explained.](https://www.youtube.com/watch?v=aao12RxwuiM&t=673s)
+13. [OAEP - Applied Cryptography](https://www.youtube.com/watch?v=ZwPGE5GgG_E)
 
 ---
 
