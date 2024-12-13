@@ -48,5 +48,4 @@ for topic in topics:
     print(colored(f"   {topic}", "white"))
 
 # Closing remark
-print("\n" + colored("✨ Siap belajar? Yuk kita mulai! ✨", "magenta", attrs=["bold"]))
 print(colored("★" * 60, "yellow"))
